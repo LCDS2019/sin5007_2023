@@ -8,3 +8,4 @@ O conjunto de dados selecionado é o presente nos microdados da educação super
 | 02    | Pré-processamento e redução de dimensionalidade |
 | 03    | Seleção de características |
 | 04    | Naive Bayer Classifier |
+| 05    | Estimação de desempenho |
