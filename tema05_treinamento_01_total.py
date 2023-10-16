@@ -31,7 +31,8 @@ print(f' Carga de dados '.center(80 ,'#'))
 #df = pd.read_csv('arquivos/dados/tema02_cursos_2021_ti_02_encoded.csv',index_col=0,sep='|')
 #df = pd.read_csv('arquivos/dados/tema02_cursos_2021_ti_04_pca.csv',index_col=0,sep='|')
 
-#df = pd.read_csv('arquivos/dados/tema02_cursos_2021_ti_03_normalized.csv',index_col=0,sep='|')
+#RELIEF
+df = pd.read_csv('arquivos/dados/tema02_cursos_2021_ti_03_normalized.csv',index_col=0,sep='|')
 filtro22=['NO_UF_Rondônia','NO_CURSO_DEPARA_SComputação','NO_CURSO_DEPARA_Agrocomputação','NO_UF_Paraíba',
           'NO_UF_Tocantins','NO_UF_Rio Grande do Norte','NO_UF_Amazonas','NO_UF_Sergipe','NO_UF_Distrito Federal',
           'NO_UF_Acre','NO_UF_Amapá','NO_UF_Roraima',
