@@ -29,7 +29,7 @@ print(f' Import de dados '.center(80 ,'#'))
 print('')
 
 #Total
-#df = pd.read_csv('arquivos/dados/tema02_cursos_2021_ti_02_encoded.csv',index_col=0,sep='|')
+df = pd.read_csv('arquivos/dados/tema02_cursos_2021_ti_02_encoded.csv',index_col=0,sep='|')
 
 #PCA
 #df = pd.read_csv('arquivos/dados/tema02_cursos_2021_ti_04_pca.csv',index_col=0,sep='|')
@@ -53,7 +53,7 @@ filtro22=['NO_UF_Rondônia','NO_CURSO_DEPARA_SComputação','NO_CURSO_DEPARA_Agr
 
 #ROS
 #
-df = pd.read_csv('arquivos/dados/tema05_df_ros.csv',index_col=0,sep='|')
+#df = pd.read_csv('arquivos/dados/tema05_df_ros.csv',index_col=0,sep='|')
 
 X=df.drop(['TP_REDE_DEPARA'],axis=1)
 y=df['TP_REDE_DEPARA']
@@ -141,6 +141,20 @@ for train_val_index, test_index in skf.split(X, y):
     print(' Val:', len(X_val))
     print(' Test:', len(test_index))
     print('')
+
+    ##########################################################################################
+
+    #from imblearn.under_sampling import RandomUnderSampler
+    #rus = RandomUnderSampler(sampling_strategy='auto')
+    #X_train, y_train = rus.fit_resample(X_train, y_train)
+
+    from imblearn.over_sampling import RandomOverSampler
+    ros = RandomOverSampler(sampling_strategy='auto')
+    X_train, y_train = ros.fit_resample(X_train, y_train)
+
+    print(len(y_train))
+
+    ##########################################################################################
 
     grid_search.fit(X_train, y_train)
     melhor_modelo = grid_search.best_estimator_
