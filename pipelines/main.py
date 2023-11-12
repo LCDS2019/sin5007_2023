@@ -3,8 +3,8 @@ import pandas as pd
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from cursos_df import seed_value, X, y
-from pipelines import pipelines
-from pretty_print import prettify, ascii_as_image
+from pipelines import pipelines, all_pipelines
+from pretty_print import prettify, ascii_as_image, plot_model_metrics
 from train_and_predict import train_and_predict
 
 np.random.seed(seed_value)
@@ -21,8 +21,17 @@ train_and_predict_f = lambda p: train_and_predict(
     pipeline=p[1]['pipeline'],
 )
 
-result = list(map(train_and_predict_f, filter(lambda x: not x[1]['skip'], pipelines.items())))
+result = list(map(train_and_predict_f, filter(lambda x: not x[1]['skip'], all_pipelines.items())))
+plot_model_metrics(result)
 df = pd.DataFrame(result)
 
-ascii_table = prettify(df, drop_columns=['best_estimator'])
+ascii_table = prettify(df, drop_columns=['best_estimator', 'all_results'])
 ascii_as_image(ascii_table, 'classifiers.jpg')
+
+cv_results = pd.DataFrame(df['all_results'])
+
+# Get the number of splits (k in k-fold)
+n_splits = sum(1 for key in cv_results if key.startswith("split") and key.endswith("test_score"))
+
+# Get the number of parameter combinations
+n_combinations = len(cv_results)

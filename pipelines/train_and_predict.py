@@ -16,7 +16,8 @@ def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv
                                cv=cv,
                                scoring='accuracy',
                                n_jobs=-1,
-                               return_train_score=True)
+                               return_train_score=True,
+                               verbose=3)
 
     # Fit via GridSearchCV
     grid_search.fit(X_train, Y_train)
@@ -25,6 +26,8 @@ def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv
     best_estimator = grid_search.best_estimator_
     best_score = grid_search.best_score_
     best_params = grid_search.best_params_
+
+    n_fits = len(grid_search.cv_results_['params']) * cv.n_splits
 
     # Previsões de validação cruzada para o melhor estimador
     y_pred = cross_val_predict(best_estimator, X_test, y_test)
@@ -37,6 +40,11 @@ def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv
     tn, fp, fn, tp = cm.ravel()
     specificity_privada = tn / (tn + fp)
     specificity_publica = tp / (tp + fn)
+
+    average_precision = (precision[0] + precision[1]) / 2
+    average_recall = (recall[0] + recall[1]) / 2
+    average_f1_score = (f1[0] + f1[1]) / 2
+    average_specificity = (specificity_privada + specificity_publica) / 2
 
     report = [
         {
@@ -54,6 +62,14 @@ def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv
             'f1_score': f1[1],
             'specificity': specificity_publica,
             'instance_count': support[1]
+        },
+        {
+            'class': 'privada + publica',
+            'precision': average_precision,
+            'sensitivity': average_recall,
+            'f1_score': average_f1_score,
+            'specificity': average_specificity,
+            'instance_count': support[0] + support[1]
         }
     ]
 
@@ -69,6 +85,8 @@ def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv
         'best_params': best_params,
         'accuracy': accuracy,
         'report': DataFrame(report),
+        'n_fits': n_fits,
         'total_time': total_time,
-        'best_estimator': best_estimator
+        'best_estimator': best_estimator,
+        'all_results': grid_search.cv_results_
     }
