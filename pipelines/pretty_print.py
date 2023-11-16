@@ -74,41 +74,51 @@ def prettify(df, drop_columns=None, float_format='.3f', tablefmt='rounded_grid')
     )
 
 
-def plot_model_metrics(dataframe):
-    # Extract unique metrics from the 'report' dataframes
-    unique_metrics = set()
-    for row in dataframe:
-        unique_metrics.update(row['report'].columns.drop('class').drop('instance_count'))
-
-    # Number of classes for positioning bars
-    num_classes = len(dataframe[0]['report']['class'])
-
-    # Initialize a figure
-    fig, axes = plt.subplots(len(dataframe), 1, figsize=(12, 6 * len(dataframe)), squeeze=False)
-
+def plot_model_metrics(models):
     # Width of each bar
     bar_width = 0.15
 
-    # Iterate over each model
-    for idx, row in enumerate(dataframe):
-        ax = axes[idx, 0]
-        model_name = row['model']['classifier'] + ' + ' + ', '.join(row['model']['steps'])
-        report_df = row['report']
+    # Total number of metrics (assuming each model report has the same metrics)
+    num_metrics = len(models[0]['report']['mean'])
 
-        # Base positions for the bars
-        base_positions = np.arange(num_classes)
+    # Generate a color palette
+    colors = plt.cm.get_cmap('viridis', len(models))
+    def model_name(row):
+        return row['model']['classifier'] + ' + ' + ', '.join(row['model']['steps'])
 
-        for metric_idx, metric in enumerate(unique_metrics):
-            # Position for bars of this metric
-            positions = base_positions + (metric_idx - len(unique_metrics) / 2) * bar_width
-            ax.bar(positions, report_df[metric], width=bar_width, label=metric)
+    # Create a model to color mapping
+    model_colors = {model_name(model): colors(i) for i, model in enumerate(models)}
 
-        ax.set_xticks(base_positions)
-        ax.set_xticklabels(report_df['class'])
-        ax.set_xlabel('Class')
-        ax.set_ylabel('Metric Values')
-        ax.set_title(f'Metrics for Model: {model_name}')
-        ax.legend()
+    # Initialize a figure
+    fig, ax = plt.subplots(figsize=(12, 6))
 
+    # Iterate over each metric
+    for metric_idx, metric_name in enumerate(models[0]['report']['mean'].keys()):
+        # Iterate over each model for this metric
+        for model_idx, model in enumerate(models):
+            # Extract metric value and std
+            metric_value = model['report']['mean'][metric_name]
+            metric_std = model['report']['std'][metric_name]
+            model_name_ = model_name(model)
+
+            # Calculate bar position
+            position = metric_idx + (model_idx - len(models) / 2) * bar_width
+
+            # Plot bar with error bar
+            ax.bar(position, metric_value, width=bar_width, label=model_name_ if metric_idx == 0 else "",
+                   yerr=metric_std, color=model_colors[model_name_], capsize=5)
+
+    # Setting the x-axis labels
+    ax.set_xticks(np.arange(num_metrics))
+    ax.set_xticklabels(models[0]['report']['mean'].keys())
+
+    # Adding labels and title
+    ax.set_xlabel('Metric')
+    ax.set_ylabel('Value')
+    ax.set_title('Comparison of Model Metrics with Standard Deviation')
+
+    ax.legend()
+
+    plt.ylim(0.7, 1.2)
     plt.tight_layout()
     plt.show()
