@@ -21,7 +21,7 @@ for pipeline in pipelines:
         X_test=X_test,
         y_test=y_test,
         cv=StratifiedKFold(
-            n_splits=2,
+            n_splits=5,
             shuffle=True,
             random_state=seed_value
         ),
@@ -52,3 +52,5 @@ n_splits = sum(1 for key in cv_results if key.startswith("split") and key.endswi
 
 # Get the number of parameter combinations
 n_combinations = len(cv_results)
+
+print(f"In total, {n_combinations} combinations and {n_splits} splits were evaluated.")
