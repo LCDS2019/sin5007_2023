@@ -1,7 +1,7 @@
 from time import time
 
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, f1_score, recall_score, precision_score
 from sklearn.model_selection import GridSearchCV, cross_val_score
 
 
@@ -16,11 +16,23 @@ def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv
 
     # Previsões e métricas para o melhor modelo
     best_estimator = grid_search.best_estimator_
+
     y_pred = best_estimator.predict(X_test)
 
-    scores_precision = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='precision_macro')
-    scores_recall = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='recall_macro')
-    scores_f1 = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='f1_macro')
+    # Precision
+    precision_scores = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='precision_macro')
+    precision_std = np.std(precision_scores)
+    precision_mean = np.mean(precision_scores)
+
+    # Recall
+    recall_scores = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='recall_macro')
+    recall_std = np.std(recall_scores)
+    recall_mean = np.mean(recall_scores)
+
+    # F1-Score
+    f1_scores = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='f1_macro')
+    f1_std = np.std(f1_scores)
+    f1_mean = np.mean(f1_scores)
 
     # Calculando a especificidade manualmente
     cm = confusion_matrix(y_test, y_pred, labels=['Privada', 'Pública'])
@@ -33,16 +45,16 @@ def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv
     report_summary = {
         'mean': {
             'accuracy': grid_search.best_score_,
-            'precision': np.mean(scores_precision),
-            'sensitivity': np.mean(scores_recall),
-            'f1_score': np.mean(scores_f1),
+            'precision': precision_mean,
+            'sensitivity': recall_mean,
+            'f1_score': f1_mean,
             # 'specificity': avg_specificity,
         },
         'std': {
             'accuracy': grid_search.cv_results_['std_test_score'][grid_search.best_index_],
-            'precision': np.std(scores_precision),
-            'sensitivity': np.std(scores_recall),
-            'f1_score': np.std(scores_f1),
+            'precision': precision_std,
+            'sensitivity': recall_std,
+            'f1_score': f1_std,
             # 'specificity': avg_specificity,
         }
     }

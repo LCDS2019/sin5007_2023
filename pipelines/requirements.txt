@@ -7,3 +7,6 @@ matplotlib==3.7.2
 tabulate==0.9.0
 skrebate==0.62
 polars
+scikeras==0.12.0
+pydot
+graphviz

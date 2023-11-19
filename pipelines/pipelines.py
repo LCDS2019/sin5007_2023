@@ -1,5 +1,6 @@
 from imblearn.pipeline import Pipeline
 from imblearn.under_sampling import RandomUnderSampler
+from scikeras.wrappers import KerasClassifier
 from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
@@ -9,7 +10,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-
+from tensorflow import keras
+import tensorflow as tf
 from cursos_df import seed_value, X
 
 
@@ -59,8 +61,9 @@ def decision_tree(additional_steps, additional_params={}):
             ("decision_tree", DecisionTreeClassifier(random_state=seed_value)),
         ]),
         "params": {
-            'decision_tree__max_depth': [10, 30],
-            'decision_tree__min_samples_split': [5, 10],
+            'decision_tree__max_depth': [10, 30, 50],
+            'decision_tree__min_samples_split': [5, 10, 30],
+            'decision_tree__min_samples_leaf': [1, 5, 10],
             **additional_params
         }
     }
@@ -115,7 +118,6 @@ def mlp(additional_steps, additional_params={}):
 def svm(additional_steps, additional_params={}):
     return {
         "pipeline": Pipeline(steps=[
-
             *additional_steps,
             ("svm", SVC(random_state=seed_value)),
         ]),
@@ -123,6 +125,33 @@ def svm(additional_steps, additional_params={}):
             'svm__C': [0.1, 1, 10],
             'svm__gamma': ['auto'],
             'svm__kernel': ['linear'],
+            **additional_params
+        }
+    }
+
+
+def get_model(hidden_layer_dim, meta):
+    n_features_in_ = meta["n_features_in_"]
+
+    model = keras.models.Sequential()
+    model.add(keras.layers.Dense(hidden_layer_dim, input_shape=(n_features_in_,), activation='relu'))
+    model.add(keras.layers.Dense(hidden_layer_dim, activation='relu'))
+    model.add(keras.layers.Dense(1, activation='sigmoid'))
+
+    return model
+
+
+def keras_model(additional_steps, additional_params={}):
+    return {
+        "pipeline": Pipeline(steps=[
+            *additional_steps,
+            ("keras", KerasClassifier(get_model, verbose=0)),
+        ]),
+        "params": {
+            "keras__model__hidden_layer_dim": [50, 100, 200],
+            "keras__optimizer": ["adam"],
+            "keras__loss": ["binary_crossentropy"],
+            "keras__epochs": [1, 5, 10, 20],
             **additional_params
         }
     }
@@ -140,11 +169,14 @@ sampler = ("undersampler", RandomUnderSampler(random_state=seed_value))
 pca = [("to_dense", to_dense), ("pca", PCA())]
 pca_params = {'pca__n_components': [15, 22]}
 
+tf.config.set_visible_devices([], 'GPU')
+
 pipelines = [
-    logistic_regression([preprocessor, sampler]),
+    # logistic_regression([preprocessor, sampler]),
     decision_tree([preprocessor, sampler]),
-    random_forest([preprocessor, sampler]),
+    # random_forest([preprocessor, sampler]),
     naive_bayes([preprocessor, sampler, ("to_dense", to_dense)]),
     svm([preprocessor, sampler, *pca], additional_params={**pca_params}),
-    mlp([preprocessor, sampler])
+    # mlp([preprocessor, sampler]),
+    keras_model([preprocessor, sampler])
 ]
