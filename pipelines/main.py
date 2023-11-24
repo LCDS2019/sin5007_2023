@@ -17,7 +17,7 @@ result = []
 for pipeline in pipelines:
     predicted = train_and_predict(
         X_train=X_train,
-        Y_train=y_train,
+        y_train=y_train,
         X_test=X_test,
         y_test=y_test,
         cv=StratifiedKFold(
@@ -39,7 +39,12 @@ for pipeline in pipelines:
 
     result.append(predicted)
 
-plot_model_metrics(result)
+
+print(result[0]['report'])
+print(result[0]['validation_report'])
+
+plot_model_metrics(result, 'report', 0.5, 1.2)
+plot_model_metrics(result, 'validation_report', 0.2, 1.5)
 df = pd.DataFrame(result)
 
 ascii_table = prettify(df, drop_columns=['best_estimator', 'all_results'])

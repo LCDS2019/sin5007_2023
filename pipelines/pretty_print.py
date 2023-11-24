@@ -74,12 +74,12 @@ def prettify(df, drop_columns=None, float_format='.3f', tablefmt='rounded_grid')
     )
 
 
-def plot_model_metrics(models):
+def plot_model_metrics(models, key, from_size, to_size):
     # Width of each bar
     bar_width = 0.15
 
     # Total number of metrics (assuming each model report has the same metrics)
-    num_metrics = len(models[0]['report']['mean'])
+    num_metrics = len(models[0][key]['mean'])
 
     # Generate a color palette
     colors = plt.cm.get_cmap('viridis', len(models))
@@ -93,12 +93,12 @@ def plot_model_metrics(models):
     fig, ax = plt.subplots(figsize=(12, 6))
 
     # Iterate over each metric
-    for metric_idx, metric_name in enumerate(models[0]['report']['mean'].keys()):
+    for metric_idx, metric_name in enumerate(models[0][key]['mean'].keys()):
         # Iterate over each model for this metric
         for model_idx, model in enumerate(models):
             # Extract metric value and std
-            metric_value = model['report']['mean'][metric_name]
-            metric_std = model['report']['std'][metric_name]
+            metric_value = model[key]['mean'][metric_name]
+            metric_std = model[key]['std'][metric_name]
             model_name_ = model_name(model)
 
             # Calculate bar position
@@ -110,7 +110,7 @@ def plot_model_metrics(models):
 
     # Setting the x-axis labels
     ax.set_xticks(np.arange(num_metrics))
-    ax.set_xticklabels(models[0]['report']['mean'].keys())
+    ax.set_xticklabels(models[0][key]['mean'].keys())
 
     # Adding labels and title
     ax.set_xlabel('Metric')
@@ -119,6 +119,6 @@ def plot_model_metrics(models):
 
     ax.legend()
 
-    plt.ylim(0.7, 1.2)
+    plt.ylim(from_size, to_size)
     plt.tight_layout()
     plt.show()

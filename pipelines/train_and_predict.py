@@ -1,63 +1,41 @@
 from time import time
 
 import numpy as np
-from sklearn.metrics import confusion_matrix, f1_score, recall_score, precision_score
-from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score, make_scorer
+from sklearn.model_selection import GridSearchCV, cross_val_score, cross_val_predict
+from sklearn.utils import resample
 
 
-def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv):
+def train_and_predict(X_train, X_test, y_train, y_test, pipeline, param_grid, cv):
     start_time = time()
     classifier_name = pipeline.steps[-1][1].__class__.__name__
 
-    # Configura e executa o GridSearchCV
-    grid_search = GridSearchCV(estimator=pipeline, param_grid=param_grid, cv=cv, scoring='accuracy', n_jobs=-1,
-                               verbose=3)
-    grid_search.fit(X_train, Y_train)
+    positive_class = 'Pública'
 
-    # Previsões e métricas para o melhor modelo
+    precision_scorer = make_scorer(precision_score, pos_label=positive_class)
+    recall_scorer = make_scorer(recall_score, pos_label=positive_class)
+    f1_scorer = make_scorer(f1_score, pos_label=positive_class)
+
+    # Configura e executa o GridSearchCV
+    grid_search = GridSearchCV(
+        estimator=pipeline,
+        param_grid=param_grid,
+        cv=cv,
+        scoring={
+            'accuracy': 'accuracy',
+            'f1': f1_scorer,
+            'recall': recall_scorer,
+            'precision': precision_scorer
+        },
+        refit='accuracy',
+        n_jobs=-1,
+        verbose=3
+    )
+
+    grid_search.fit(X_train, y_train)
     best_estimator = grid_search.best_estimator_
 
-    y_pred = best_estimator.predict(X_test)
-
-    # Precision
-    precision_scores = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='precision_macro')
-    precision_std = np.std(precision_scores)
-    precision_mean = np.mean(precision_scores)
-
-    # Recall
-    recall_scores = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='recall_macro')
-    recall_std = np.std(recall_scores)
-    recall_mean = np.mean(recall_scores)
-
-    # F1-Score
-    f1_scores = cross_val_score(best_estimator, X_train, Y_train, cv=cv, scoring='f1_macro')
-    f1_std = np.std(f1_scores)
-    f1_mean = np.mean(f1_scores)
-
-    # Calculando a especificidade manualmente
-    cm = confusion_matrix(y_test, y_pred, labels=['Privada', 'Pública'])
-    tn, fp, fn, tp = cm.ravel()
-    specificity_privada = tn / (tn + fp)
-    specificity_publica = tp / (tp + fn)
-    avg_specificity = (specificity_privada + specificity_publica) / 2
-
-    # Relatório final com desvios padrão
-    report_summary = {
-        'mean': {
-            'accuracy': grid_search.best_score_,
-            'precision': precision_mean,
-            'sensitivity': recall_mean,
-            'f1_score': f1_mean,
-            # 'specificity': avg_specificity,
-        },
-        'std': {
-            'accuracy': grid_search.cv_results_['std_test_score'][grid_search.best_index_],
-            'precision': precision_std,
-            'sensitivity': recall_std,
-            'f1_score': f1_std,
-            # 'specificity': avg_specificity,
-        }
-    }
+    report_summary = resample_and_predict(best_estimator, X_test, y_test)
 
     end_time = time()
 
@@ -65,7 +43,46 @@ def train_and_predict(X_train, X_test, Y_train, y_test, pipeline, param_grid, cv
         'model': {'classifier': classifier_name, 'steps': list(pipeline.named_steps)},
         'best_params': grid_search.best_params_,
         'report': report_summary,
+        'validation_report': extract_validation_data(grid_search.cv_results_),
         'total_time': end_time - start_time,
         'best_estimator': best_estimator,
         'all_results': grid_search.cv_results_
+    }
+
+
+def extract_validation_data(cv_results):
+    metrics = ['accuracy', 'precision', 'recall', 'f1']
+    result = {'mean': {}, 'std': {}}
+
+    for metric in metrics:
+        mean_key = f'mean_test_{metric}'
+        std_key = f'std_test_{metric}'
+        if mean_key in cv_results:
+            result['mean'][metric] = cv_results[mean_key].max()
+            result['std'][metric] = cv_results[std_key][cv_results[mean_key].argmax()]
+
+    return result
+
+
+def resample_and_predict(estimator, X_test, y_test, sample_per_bootstrap=10000, n_bootstraps=100):
+    scores = {
+        'accuracy': [],
+        'precision': [],
+        'recall': [],
+        'f1': []
+    }
+
+    for _ in range(n_bootstraps):
+        X_bootstrap, y_bootstrap = resample(X_test, y_test, n_samples=sample_per_bootstrap)
+
+        y_pred = estimator.predict(X_bootstrap)
+
+        scores['accuracy'].append(accuracy_score(y_bootstrap, y_pred))
+        scores['precision'].append(precision_score(y_bootstrap, y_pred, average='macro'))
+        scores['recall'].append(recall_score(y_bootstrap, y_pred, average='macro'))
+        scores['f1'].append(f1_score(y_bootstrap, y_pred, average='macro'))
+
+    return {
+        'mean': {metric: np.mean(scores[metric]) for metric in scores},
+        'std': {metric: np.std(scores[metric]) for metric in scores}
     }
